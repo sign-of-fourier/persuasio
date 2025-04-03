@@ -43,9 +43,10 @@ def persuasio():
 
 #    user_statment = request.form.get('user_statement')
 #    system = request.form.get('system')
-#    transcript_history = request.form.get('transcript_history')
-  
+#    transcript_history = request.form.get('transcript_history')  
 #    product_history = request.form.get('product_history')
+
+    
     max_tokens = request.args.get('max_tokens')
     product_history_included = request.args.get('product_history_included')
 
@@ -53,7 +54,7 @@ def persuasio():
     client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
     description_db = client.get_collection(name="amazon_beauty_descriptions")
     description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
-    reviews_df = pd.read_csv('reviews.csv.gz', compression='gzip')
+    reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
 
     # greeting = 'Megan: Hi, my name is Megan. Is there something I can I help you with?'
 
