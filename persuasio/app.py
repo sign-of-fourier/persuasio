@@ -15,8 +15,8 @@ from scipy.stats import ecdf, norm
 import requests
 import json
 
-import utils
-import agents
+import persuasio.utils
+import persuasio.agents
 
 app = Flask(__name__)
 
