@@ -48,8 +48,8 @@ def persuasio():
     max_tokens = request.args.get('max_tokens')
     product_history_included = request.args.get('product_history_included')
 
-    client = chromadb.PersistentClient(path="chroma_small")
-    client2 = chromadb.PersistentClient(path="chroma_small2")
+    client = chromadb.PersistentClient(path="persuasio/chroma_small")
+    client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
     description_db = client.get_collection(name="amazon_beauty_descriptions")
     description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
     reviews_df = pd.read_csv('reviews.csv.gz', compression='gzip')
