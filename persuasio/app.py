@@ -9,9 +9,10 @@ import boto3
 from datetime import datetime as dt
 import inspect
 
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import WhiteKernel, Matern, DotProduct
-from scipy.stats import ecdf, norm
+#from sklearn.gaussian_process import GaussianProcessRegressor
+#from sklearn.gaussian_process.kernels import WhiteKernel, Matern, DotProduct
+#from scipy.stats import ecdf, norm
+
 import requests
 import json
 
