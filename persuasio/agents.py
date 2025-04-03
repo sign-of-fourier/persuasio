@@ -144,7 +144,7 @@ def search(transcript):
               "### REAL TRANSCRIPT ###\n{}\n\n".format(transcript)]
 
     search_terms = call_nova(" ".join(background), [{'text': " ".join(prompt)}], nova_config)
-    return eval(re.sub('`', '', (search_terms)))
+    return re.sub('`', '', (search_terms))
 #    return chuck_gpt.call(" ".join(background), " ".join(prompt))
 
 def embedding(input_text):
