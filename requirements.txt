@@ -4,7 +4,7 @@ botocore
 flask
 chromadb
 pandas
-numpy=1.26.4
+numpy==1.26.4
 concurrent
 inspect
 sklearn
