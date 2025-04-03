@@ -1,0 +1,15 @@
+boto3
+json
+re
+botocore
+random
+flask
+chromadb
+pandas
+numpy
+concurrent
+datetime
+inspect
+sklearn
+scipy
+requests
