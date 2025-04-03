@@ -16,8 +16,8 @@ import inspect
 import requests
 import json
 
-import persuasio.utils
-import persuasio.agents
+import persuasio.utils as utils
+import persuasio.agents as agents
 
 app = Flask(__name__)
 
