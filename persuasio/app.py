@@ -1,6 +1,6 @@
 from flask import Flask, request
 
-#import chromadb
+import chromadb
 import pandas as pd
 import re
 import numpy as np 
