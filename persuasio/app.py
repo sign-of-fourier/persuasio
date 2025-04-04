@@ -24,7 +24,7 @@ app = Flask(__name__)
 page = """
 <html>
 <p id='paragraph'>{}
-<form action='http://127.0.0.1:5000/persuasio?max_tokens=205&iteration=4&product_history_included=False' method=post>
+<form action='/persuasio?max_tokens=256&iteration=4&product_history_included=False' method=post>
     <input type=hidden name=product_history value="{}"></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value="{}"></input>
@@ -100,7 +100,7 @@ def persuasio():
     reply = re.sub("\n", ' ', agents.salesman(conversation, product_info))
 
     transcript = conversation + "\nMegan: " + reply
-    return page.format(re.sub("\n", "<br>", re.sub('Dasha', '<b>Dasha</b>', re.sub('Megan', '<b>Megan</b>', transcript))), json.dumps(search_df.to_dict()),  transcript,  "<br>".join(images))
+    return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), json.dumps(search_df.to_dict()),  transcript,  "<br>".join(images))
     
 # conversation.append('Megan: ' + utils.remove_name('Megan', reply))
 # reply = input(reply)
