@@ -21,6 +21,13 @@ import persuasio.agents as agents
 
 app = Flask(__name__)
 
+
+client = chromadb.PersistentClient(path="persuasio/chroma_small")
+client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
+
+description_db = client.get_collection(name="amazon_beauty_descriptions")
+description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
+
 page = """
 <html>
 <p>{}
@@ -31,6 +38,29 @@ page = """
 <input type='submit' value='Submit'></input>
 </form>
 """
+
+
+@app.route("/chromadb", methods = ['POST'])
+def chromadb():
+    
+    iteration = request.args.get('iteration')
+    data = json.loads(request.data)   
+    search_terms = data['search_terms']
+
+    results = description_db.query(
+        query_texts=search_terms,
+        n_results=3
+    )
+    results2 = description_db2.query(
+        query_texts=search_terms,
+        n_results=3
+    )
+    
+    search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
+    return json.dumps(search_df.to_dict())
+
+
+
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
@@ -50,10 +80,10 @@ def persuasio():
     max_tokens = request.args.get('max_tokens')
     product_history_included = request.args.get('product_history_included')
 
-    client = chromadb.PersistentClient(path="persuasio/chroma_small")
-    client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
-    description_db = client.get_collection(name="amazon_beauty_descriptions")
-    description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
+#    client = chromadb.PersistentClient(path="persuasio/chroma_small")
+#    client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
+#    description_db = client.get_collection(name="amazon_beauty_descriptions")
+#    description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
     reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
 
     # greeting = 'Megan: Hi, my name is Megan. Is there something I can I help you with?'
