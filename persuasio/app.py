@@ -24,7 +24,7 @@ app = Flask(__name__)
 page = """
 <html>
 <p id='paragraph'>{}
-<form action='/persuasio?max_tokens=256&iteration=4&product_history_included=False' method=post>
+<form action='/persuasio?max_tokens=256&iteration=4&product_history_included=True' method=post>
     <input type=hidden name=product_history value="{}"></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value="{}"></input>
