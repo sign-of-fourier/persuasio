@@ -80,11 +80,11 @@ def embeddingdb():
     
     data = json.loads(request.data)
     results = description_db.query(
-        query_texts=search_terms,
+        query_texts=data['search_terms'],
         n_results=3
         )
     results2 = description_db2.query(
-        query_texts=search_terms,
+        query_texts=data['search_terms'],
         n_results=3
     )
     search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
@@ -115,8 +115,12 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
         search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
     else:
         response = requests.post('https://persuasio.onrender.com/chromadb?iteration=1&max_tokens=250&include_product_history=False', data=json.dumps({'search_terms': search_terms}))
+        try:
 #        print(response.content)
-        search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
+            search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
+        except Exception as e:
+            print(e)
+            return response.content
 
     if product_history_included == 'True':
 #        print('Product Historionics')
