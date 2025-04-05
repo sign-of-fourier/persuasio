@@ -1,6 +1,6 @@
-from flask import Flask, request
+import os
 
-import chromadb
+from flask import Flask, request
 import pandas as pd
 import re
 import numpy as np 
@@ -24,40 +24,94 @@ app = Flask(__name__)
 page = """
 <html>
 <p id='paragraph'>{}
-<form action='/persuasio?max_tokens=256&iteration=4&product_history_included=False' method=post>
+<table>
+<tr>
+<td>
+<form action='/persuasio?max_tokens=256&iteration=4&product_history_included=True' method=post>
     <input type=hidden name=product_history value="{}"></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value="{}"></input>
     <input type=text name='user_statement'></input>
     <input type=submit name=submissize value=nah></input></input>
 </form>
-</form>
+</td>
+<td>
 <p id='pics'><div style="height:700px; width700px;border:1px sold #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;">{}</div>
-
+</td>
+</tr>
 """
-client = chromadb.PersistentClient(path="persuasio/chroma_small")
-client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
-description_db = client.get_collection(name="amazon_beauty_descriptions")
-description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
+
+
+if 'CHROMADB' in os.environ.keys():
+    import chromadb
+    client = chromadb.PersistentClient(path="persuasio/chroma_small")
+    client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
+    description_db = client.get_collection(name="amazon_beauty_descriptions")
+    description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
 
 
 reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
 
+welcome_page = """
+<html>
+<script>
+function f(){
+    document.getElementById('paragraph').value='X'
+}
+</script>
+<p id='paragraph'>Z</p>
+<form onclick="f()">
+    <input type=submit value=debug>
+</form>
+<form action='http://persuasio.onrender.com/persuasio?max_tokens=205&iteration=4&product_history_included=False' method=post>
+    <input type=hidden name=product_history value='None'></input>
+    <input type=hidden name=system value='You are a sales person at Amazon.'></input>
+    <input type=hidden name=transcript_history value='Megan: Hi. How can I help you?'></input>
+    <input type=text name='user_statement' value="What's the best perfume?"></input>
+    <input type=submit name=submissize value=nah></input></input>
+</form>
+</form>
+</html>
+"""
+@app.route("/")
+def welcome():
+    return welcome_page
+
+@app.route('/chromadb')
+def embeddingdb():
+    
+    data = json.loads(request.data)
+    results = description_db.query(
+        query_texts=search_terms,
+        n_results=3
+        )
+    results2 = description_db2.query(
+        query_texts=search_terms,
+        n_results=3
+    )
+    search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
+    
+    return json.dumps(search_df.to_dict())
+        
+@app.route("/persuasio_json", methods = ['POST'])
+def persuasio_json():
+    
+
+    data = json.loads(request.data)
+    return chatbot(data['user_statement'], data['system'], data['transcript_history'],
+                   data['product_history'], data['iteration'],  request.args.get('max_tokens'),
+                   request.args.get('product_history_included'))
+    
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
+        
+    return chatbot(request.form.get('user_statement'), request.form.get('system'), request.form.get('transcript_history'),
+                   request.form.get('product_history'), request.form.get('iteration'),  request.args.get('max_tokens'),
+                   request.args.get('product_history_included'))
     
-    user_statement = request.form.get('user_statement')
-    system = request.form.get('system')
-    transcript_history = request.form.get('transcript_history')  
-    product_history = request.form.get('product_history')
 
-    iteration = request.form.get('iteration')    
-    max_tokens = request.args.get('max_tokens')
-    product_history_included = request.args.get('product_history_included')
-
-
-    # greeting = 'Megan: Hi, my name is Megan. Is there something I can I help you with?'
+def chat_bot(user_statement, system, transcript_history, product_history, iteration, max_tokens, product_history_included):
 
     conversation = transcript_history + "\nDasha: " + user_statement 
 
@@ -67,18 +121,21 @@ def persuasio():
     except Exception as e:
         print(e)
         
-    results = description_db.query(
-        query_texts=search_terms,
-        n_results=3
-    )
-    results2 = description_db2.query(
-        query_texts=search_terms,
-        n_results=3
-    )
-
-    search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
-#    response = requests.post('https://persuasio.onrender.com/chromadb?iteration=1&max_tokens=250&include_product_history=False', data=json.dumps({'search_terms': search_terms}))
-#    search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
+    
+    if 'CHROMADB' in os.environ.keys():
+        
+        results = description_db.query(
+            query_texts=search_terms,
+            n_results=3
+        )
+        results2 = description_db2.query(
+            query_texts=search_terms,
+            n_results=3
+        )
+        search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
+    else:
+        response = requests.post('https://persuasio.onrender.com/chromadb?iteration=1&max_tokens=250&include_product_history=False', data=json.dumps({'search_terms': search_terms}))
+        search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
 
     if product_history_included == 'True':
         search_df = pd.concat([search_df, pd.DataFrame(product_history)], axis=0) 
