@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='persuasio',
-      version='0.2.4',
+      version='0.2.5',
       description='Persuasive Chatbot',
       url='https://persuas.io',
       author='sign-of-fourier',
