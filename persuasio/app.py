@@ -23,10 +23,12 @@ app = Flask(__name__)
 
 page = """
 <html>
-<p id='paragraph'>{}
+<title>Persuasio</title>
+
 <table>
 <tr>
 <td>
+<p id='paragraph'>{}
 <form action='/persuasio?max_tokens=256&iteration=4&product_history_included=True' method=post>
     <input type=hidden name=product_history value="{}"></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
@@ -55,22 +57,17 @@ reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
 welcome_page = """
 <html>
 <title>Persuasio</title>
-<script>
-function f(){
-    document.getElementById('paragraph').value='X'
-}
-</script>
-<p id='paragraph'>Z</p>
-<form onclick="f()">
-    <input type=submit value=debug>
-</form>
+<center><h2>Persuasio </h2></center>
+<hr>
+Meet Persephone. The worlds first persuasive shopping assistant!
+<br>
+She is knolwedgable about beauty products.
 <form action='http://persuasio.onrender.com/persuasio?max_tokens=205&iteration=4&product_history_included=False' method=post>
     <input type=hidden name=product_history value='None'></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value='Megan: Hi. How can I help you?'></input>
     <input type=text name='user_statement' value="What's the best perfume?"></input>
-    <input type=submit name=submissize value=nah></input></input>
-</form>
+    <input type=submit name=submissize value=Chat></input></input>
 </form>
 </html>
 """
@@ -121,7 +118,9 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
         search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
 
     if product_history_included == 'True':
+        print(product_history)
         search_df = pd.concat([search_df, pd.DataFrame(product_history)], axis=0) 
+        
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
     #print("\n".join([i for i in search_df['image']]))
     
