@@ -42,7 +42,7 @@ page = """
 </td>
 </tr>
 """
-
+name = 'Megan'
 
 if 'CHROMADB' in os.environ.keys():
     import chromadb
@@ -62,7 +62,7 @@ welcome_page = """
 Meet Persephone. The worlds first persuasive shopping assistant!
 <br>
 She is knolwedgable about beauty products.
-<form action='http://persuasio.onrender.com/persuasio?max_tokens=205&iteration=4&product_history_included=False' method=post>
+<form action='http://persuasio.onrender.com/persuasio?max_tokens=205&iteration=0&product_history_included=False' method=post>
     <input type=hidden name=product_history value='None'></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value='Megan: Hi. How can I help you?'></input>
@@ -124,7 +124,7 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
     #print("\n".join([i for i in search_df['image']]))
     
-    images = ["<table><tr><td><img src='{}'></img></td></tr><tr><td><b>{}.</b> {}</td></tr></table>".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
+    images = ["<table><tr><td><img src='{}'></img></td></tr><tr><td><b>{}.</b> {}</td></tr></table>\n".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
             #print(results['metadatas'][i][j]['title'], ', $' + str(results['metadatas'][i][j]['price']))
 
     product_info = ''
@@ -139,7 +139,8 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
     reply = re.sub("\n", ' ', agents.salesman(conversation, product_info))
 
     transcript = conversation + "\nMegan: " + reply
-    return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), json.dumps(search_df.to_dict()),  transcript,  "<br>".join(images))
+    search_df_text = re.sub("\"", "\\\"", json.dumps(search_df.to_dict()))
+    return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), search_df_text,  transcript,  "<br>".join(images))
 
 @app.route("/persuasio_json", methods = ['POST'])
 def persuasio_json():
