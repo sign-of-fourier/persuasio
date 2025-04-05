@@ -23,10 +23,12 @@ app = Flask(__name__)
 
 page = """
 <html>
-<p id='paragraph'>{}
+<title>Persuasio</title>
+
 <table>
 <tr>
 <td>
+<p id='paragraph'>{}
 <form action='/persuasio?max_tokens=256&iteration=4&product_history_included=True' method=post>
     <input type=hidden name=product_history value="{}"></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
@@ -40,7 +42,7 @@ page = """
 </td>
 </tr>
 """
-
+name = 'Megan'
 
 if 'CHROMADB' in os.environ.keys():
     import chromadb
@@ -55,22 +57,17 @@ reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
 welcome_page = """
 <html>
 <title>Persuasio</title>
-<script>
-function f(){
-    document.getElementById('paragraph').value='X'
-}
-</script>
-<p id='paragraph'>Z</p>
-<form onclick="f()">
-    <input type=submit value=debug>
-</form>
-<form action='http://persuasio.onrender.com/persuasio?max_tokens=205&iteration=4&product_history_included=False' method=post>
+<center><h2>Persuasio </h2></center>
+<hr>
+Meet Persephone. The worlds first persuasive shopping assistant!
+<br>
+She is knolwedgable about beauty products.
+<form action='http://persuasio.onrender.com/persuasio?max_tokens=205&iteration=0&product_history_included=False' method=post>
     <input type=hidden name=product_history value='None'></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value='Megan: Hi. How can I help you?'></input>
     <input type=text name='user_statement' value="What's the best perfume?"></input>
-    <input type=submit name=submissize value=nah></input></input>
-</form>
+    <input type=submit name=submissize value=Chat></input></input>
 </form>
 </html>
 """
@@ -121,11 +118,13 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
         search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
 
     if product_history_included == 'True':
+        print(product_history)
         search_df = pd.concat([search_df, pd.DataFrame(product_history)], axis=0) 
+        
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
     #print("\n".join([i for i in search_df['image']]))
     
-    images = ["<table><tr><td><img src='{}'></img></td></tr><tr><td><b>{}.</b> {}</td></tr></table>".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
+    images = ["<table><tr><td><img src='{}'></img></td></tr><tr><td><b>{}.</b> {}</td></tr></table>\n".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
             #print(results['metadatas'][i][j]['title'], ', $' + str(results['metadatas'][i][j]['price']))
 
     product_info = ''
@@ -140,7 +139,8 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
     reply = re.sub("\n", ' ', agents.salesman(conversation, product_info))
 
     transcript = conversation + "\nMegan: " + reply
-    return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), json.dumps(search_df.to_dict()),  transcript,  "<br>".join(images))
+    search_df_text = re.sub("\"", "\\\"", json.dumps(search_df.to_dict()))
+    return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), search_df_text,  transcript,  "<br>".join(images))
 
 @app.route("/persuasio_json", methods = ['POST'])
 def persuasio_json():
