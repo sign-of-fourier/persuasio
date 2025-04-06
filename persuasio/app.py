@@ -56,7 +56,7 @@ if 'CHROMADB' in os.environ.keys():
     
     beauty_description_db = {'Beauty': [chromadb.PersistentClient(path="persuasio/chroma_small").get_collection(name="amazon_beauty_descriptions"),
                                         chromadb.PersistentClient(path="persuasio/chroma_small2").get_collection(name="amazon_beauty_descriptions2")],
-                             'Appliances': [chromadb.PersistentClient(path="persuasio/chroma_small").get_collection(name="amazon_appliances_descriptions"),
+                             'Appliances': [chromadb.PersistentClient(path="persuasio/chroma_appliances").get_collection(name="amazon_appliances_descriptions"),
                                         chromadb.PersistentClient(path="persuasio/chroma_appliances2").get_collection(name="amazon_appliances_descriptions2"),
                                         chromadb.PersistentClient(path="persuasio/chroma_appliances3").get_collection(name="amazon_appliances_descriptions3")]
                             } 
