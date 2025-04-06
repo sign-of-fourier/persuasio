@@ -90,7 +90,7 @@ def welcome():
     return welcome_page.format(name)
 
     
-def embeddingdb(department, search_terms):
+def embeddingdb(department, search_terms, iteration):
     
     results = []
     for db in descriptions_db[department]:
@@ -100,7 +100,7 @@ def embeddingdb(department, search_terms):
         )
                       )
                        
-    return pd.concat([utils.get_search_df(r, data['iteration']) for r in results], axis=0)
+    return pd.concat([utils.get_search_df(r, iteration) for r in results], axis=0)
     
         
 def chat_bot(user_statement, department, transcript_history, product_history, iteration, max_tokens, product_history_included):
@@ -114,7 +114,7 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
         
     
     if 'CHROMADB' in os.environ.keys():
-        search_df = embeddingdb(department, search_terms)
+        search_df = embeddingdb(department, search_terms, iteration)
     else:
         response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}&max_tokens={}&include_product_history={}'.format(iteration, max_tokens, product_history_included), data=json.dumps({'search_terms': search_terms, 'iteration': iteration, 'department': department}))
         try:
@@ -174,7 +174,7 @@ def persuasio():
 @app.route('/chromadb', methods = ['POST'])
 def call_chroma():
     data = json.loads(request.data)
-    return json.dumps(embeddingdb(data['department'], data['search_terms']).to_dict())
+    return json.dumps(embeddingdb(data['department'], data['search_terms'], data['iteration']).to_dict())
     
 
 
