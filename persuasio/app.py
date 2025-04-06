@@ -30,11 +30,11 @@ page = """
 <td>
 <p id='paragraph'>{}
 <form action='/persuasio?max_tokens=256&iteration={}&product_history_included=True' method=post>
-    <input type=hidden name=product_history value="{}"></input>
+    <input type=hidden name=product_history value='{}'></input>
     <input type=hidden name=system value='You are a sales person at Amazon.'></input>
     <input type=hidden name=transcript_history value="{}"></input>
     <input type=text name='user_statement'></input>
-    <input type=submit name=submissize value=nah></input></input>
+    <input type=submit name=submissize value=Chat></input></input>
 </form>
 </td>
 <td>
@@ -116,17 +116,12 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
     else:
         response = requests.post('https://persuasio.onrender.com/chromadb?iteration=1&max_tokens=250&include_product_history=False', data=json.dumps({'search_terms': search_terms, 'iteration': iteration}))
         try:
-#        print(response.content)
             search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
         except Exception as e:
             print(e)
             return response.content
-
     if product_history_included == 'True':
-#        print('Product Historionics')
-#        print(product_history)
-#        print('----')
-        search_df = pd.concat([search_df, pd.DataFrame(product_history)], axis=0) 
+        search_df = pd.concat([search_df, pd.DataFrame(json.loads(product_history))], axis=0) 
         
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
     #print("\n".join([i for i in search_df['image']]))
@@ -146,7 +141,7 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
     reply = re.sub("\n", ' ', agents.salesman(conversation, product_info))
 
     transcript = conversation + "\nMegan: " + reply
-    search_df_text = re.sub("\"", "\\\"", json.dumps(search_df.to_dict()))
+    search_df_text = re.sub("'", "&apos;", json.dumps(search_df.to_dict()))
     return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), 
                        iteration+1,
                        search_df_text,  transcript,  "<br>".join(images), iteration+1)
@@ -163,9 +158,8 @@ def persuasio_json():
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
-        
     return chat_bot(request.form.get('user_statement'), request.form.get('system'), request.form.get('transcript_history'),
-                    request.form.get('product_history'), request.form.get('iteration')+1,  request.args.get('max_tokens'),
+                    request.form.get('product_history'), int(request.args.get('iteration'))+1,  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
     
 
