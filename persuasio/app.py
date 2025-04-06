@@ -94,8 +94,7 @@ def embeddingdb():
 def chat_bot(user_statement, system, transcript_history, product_history, iteration, max_tokens, product_history_included):
 
     conversation = transcript_history + "\nDasha: " + user_statement 
-
-    search_terms = agents.search(conversation)
+    search_terms = agents.search("\n".join(conversation.split("\n")[:8]))
     try:
         search_terms = eval(search_terms)
     except Exception as e:
@@ -114,7 +113,7 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
         )
         search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
     else:
-        response = requests.post('https://persuasio.onrender.com/chromadb?iteration=1&max_tokens=250&include_product_history=False', data=json.dumps({'search_terms': search_terms, 'iteration': iteration}))
+        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}&max_tokens={}&include_product_history={}'.format(iteration, max_tokens, product_history_included), data=json.dumps({'search_terms': search_terms, 'iteration': iteration}))
         try:
             search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
         except Exception as e:
@@ -122,8 +121,12 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
             return response.content
     if product_history_included == 'True':
         search_df = pd.concat([search_df, pd.DataFrame(json.loads(product_history))], axis=0) 
-        
+
+    mx = np.max(pd.DataFrame(search_df)['iteration'])    
+    search_df = search_df[search_df['iteration'] >= (int(mx)-2)].sort_values('distances')
+    print(search_df[['title', 'iteration', 'distances']])
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
+    
     #print("\n".join([i for i in search_df['image']]))
     
     images = ["<table><tr><td><img src='{}'></img></td></tr><tr><td><b>{}.</b> {}</td></tr></table>\n".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
@@ -152,14 +155,14 @@ def persuasio_json():
 
     data = json.loads(request.data)
     return chat_bot(data['user_statement'], data['system'], data['transcript_history'],
-                    data['product_history'], data['iteration']+1,  request.args.get('max_tokens'),
+                    data['product_history'], data['iteration'],  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
     
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
     return chat_bot(request.form.get('user_statement'), request.form.get('system'), request.form.get('transcript_history'),
-                    request.form.get('product_history'), int(request.args.get('iteration'))+1,  request.args.get('max_tokens'),
+                    request.form.get('product_history'), int(request.args.get('iteration')),  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
     
 
