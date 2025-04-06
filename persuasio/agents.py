@@ -83,9 +83,9 @@ def summarize(reviews):
 #    return chuck_gpt.call(" ".join(background), " ".join(prompt))
 
 
-def salesman(transcript_of_conversation: 'transcript', search_results: 'rag') -> 'string':
+def salesman(department: 'string', transcript_of_conversation: 'transcript', search_results: 'rag') -> 'string':
 
-    background = ['You are a sales person at a beauty store and your name is \'Megan\'.',
+    background = ['You are a sales person at a {} store and your name is \Persephone\'.'.format(department),
                   'You are speaking with a customer.']
     prompt = ['Your goal is to help the customer shop.'
               'You are in the middle of a conversation',
@@ -103,9 +103,9 @@ def salesman(transcript_of_conversation: 'transcript', search_results: 'rag') ->
 
 
 
-def prospect(transcript):
-    background = ["You are a shopper at beauty store. Your name is 'Dasha'."]
-    prompt = ['You are speaking with a sales person named \'Megan\'.',
+def prospect(department, customer_name, transcript):
+    background = ["You are a shopper at {} store. Your name is '{}'".format(department, customer_name)]
+    prompt = ['You are speaking with a sales person named \'Persephone\'.',
               'You will be given a transcript of your conversation so far.',
               'Do not label, introduce your response or add a heading.',
               "\n### TRANSCRIPT OF DIALOGUE SO FAR ###\n{}\n\n".format(transcript)]

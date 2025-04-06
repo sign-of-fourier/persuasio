@@ -25,24 +25,31 @@ page = """
 <html>
 <title>Persuasio</title>
 
-<table>
-<tr>
-<td>
-<p id='paragraph'>{}
-<form action='/persuasio?max_tokens=256&iteration={}&product_history_included=True' method=post>
-    <input type=hidden name=product_history value='{}'></input>
-    <input type=hidden name=system value='You are a sales person at Amazon.'></input>
-    <input type=hidden name=transcript_history value="{}"></input>
-    <input type=text name='user_statement'></input>
-    <input type=submit name=submissize value=Chat></input></input>
-</form>
-</td>
-<td>
-<p id='pics'><div style="height:700px; width700px;border:1px sold #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;">{}</div>
-</td>
-</tr>
+<table border=1>
+    <tr>
+      <td>
+      <form action='/persuasio?max_tokens=256&iteration={}&product_history_included=True' method=post>
+          <input type=hidden name=product_history value='{}'></input>
+          <b>Department</b>: {}
+          <input type=hidden name=department value="{}"></input>
+             <br><br>
+             {}<br><br>
+             <input type=hidden name=transcript_history value="{}"></input>
+          <input type=text name='user_statement'></input>
+          <input type=submit name=submissize value=Chat></input></input>
+      </form>
+      </td>
+      <td>
+      <p id='pics'><div style="height:700px; width700px;border:1px sold #ccc;font:16px/26px Georgia, Garamond, Serif;overflow:auto;">{}</div>
+      </td>
+    </tr>
+</table>
+<br>
+<br><a href="https://persuasio.onrender.com/">Start a new conversation.</a>
 """
-name = 'Megan'
+name = 'Persephone'
+customer_name = 'Guest'
+
 url = ''
 if 'CHROMADB' in os.environ.keys():
     import chromadb
@@ -57,15 +64,19 @@ reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
 welcome_page = """
 <html>
 <title>Persuasio</title>
-<center><h2>Persuasio </h2></center>
+<center><h2>Persephone </h2></center>
 <hr>
 Meet Persephone. The worlds first persuasive shopping assistant!
 <br>
-She is knolwedgable about beauty products.
+She is knolwedgable about a variety of products and their reviews.<br>
 <form action='/persuasio?max_tokens=205&iteration=0&product_history_included=False' method=post>
     <input type=hidden name=product_history value='None'></input>
-    <input type=hidden name=system value='You are a sales person at Amazon.'></input>
-    <input type=hidden name=transcript_history value='Megan: Hi. How can I help you?'></input>
+    <label for=Department>Department:</label>
+    <select name="department" id="department">
+      <option value="Electronics">Electronics</option>
+      <option value="Beauty">Beauty</option>
+    </select><br><br>
+    <input type=hidden name=transcript_history value='{}: Hi. How can I help you?'></input>
     <input type=text name='user_statement' value="What's the best perfume?"></input>
     <input type=submit name=submissize value=Chat></input></input>
 </form>
@@ -73,7 +84,7 @@ She is knolwedgable about beauty products.
 """
 @app.route("/")
 def welcome():
-    return welcome_page
+    return welcome_page.format(name)
 
 @app.route('/chromadb', methods = ['POST'])
 def embeddingdb():
@@ -91,9 +102,9 @@ def embeddingdb():
     
     return json.dumps(search_df.to_dict())
         
-def chat_bot(user_statement, system, transcript_history, product_history, iteration, max_tokens, product_history_included):
+def chat_bot(user_statement, department, transcript_history, product_history, iteration, max_tokens, product_history_included):
 
-    conversation = transcript_history + "\nDasha: " + user_statement 
+    conversation = transcript_history + "\n"+customer_name+": " + user_statement 
     search_terms = agents.search("\n".join(conversation.split("\n")[:8]))
     try:
         search_terms = eval(search_terms)
@@ -124,7 +135,7 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
 
     mx = np.max(pd.DataFrame(search_df)['iteration'])    
     search_df = search_df[search_df['iteration'] >= (int(mx)-2)].sort_values('distances')
-    print(search_df[['title', 'iteration', 'distances']])
+#    print(search_df[['title', 'iteration', 'distances']])
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
     
     #print("\n".join([i for i in search_df['image']]))
@@ -141,27 +152,27 @@ def chat_bot(user_statement, system, transcript_history, product_history, iterat
         product_info += "Overall Average: {}\nNumber of Ratings: {}\nPrice: ${}\n\n".format(avg_rating, rating_n, price)
         ct += 1
 
-    reply = re.sub("\n", ' ', agents.salesman(conversation, product_info))
+    reply = re.sub("\n", ' ', agents.salesman(department, conversation, product_info))
 
-    transcript = conversation + "\nMegan: " + reply
+    transcript = conversation + "\n" + name + ": " + reply
     search_df_text = re.sub("'", "&apos;", json.dumps(search_df.to_dict()))
-    return page.format(re.sub("\n", "<br>", re.sub('Dasha:', '<b>Dasha</b>:', re.sub('Megan:', '<b>Megan</b>:', transcript))), 
-                       iteration+1,
-                       search_df_text,  transcript,  "<br>".join(images), iteration+1)
+    return page.format(iteration+1, search_df_text, department, department,
+                       re.sub("\n", "<br>", re.sub(customer_name+':', '<b>'+customer_name+'</b>:', re.sub(name+':', '<b>'+name+'</b>:', transcript))), 
+                       transcript,  "<br>".join(images))
 
 @app.route("/persuasio_json", methods = ['POST'])
 def persuasio_json():
     
 
     data = json.loads(request.data)
-    return chat_bot(data['user_statement'], data['system'], data['transcript_history'],
+    return chat_bot(data['user_statement'], data['department'], data['transcript_history'],
                     data['product_history'], data['iteration'],  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
     
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
-    return chat_bot(request.form.get('user_statement'), request.form.get('system'), request.form.get('transcript_history'),
+    return chat_bot(request.form.get('user_statement'), request.form.get('department'), request.form.get('transcript_history'),
                     request.form.get('product_history'), int(request.args.get('iteration')),  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
     
