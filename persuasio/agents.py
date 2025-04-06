@@ -124,16 +124,17 @@ Jose: Hello. I need a lawn mower.
 Bart: OK. I can help you with that. Are you looking for a riding lawnmower or push?
 Jose: Push
 Bart: Electric or Gas
-Jose: Gas. Those electric ones aren't very powerful and I think they breakdown.
+Jose: Gas. Those electric ones aren't very powerful and I think they break down.
 Bart: Well, actually they've gotten better but I can show you the as ones first and then if you'd like to take a quick glance at the electric ones, I can show you thoses as well
 """
-answer = "```[\"Bathroom lighting that is arranged above the mirror in a bathroom is sometimes described as 'Vanity Bathroom Lighting'.\"]```"
+answer = "```[\"Decorative bathroom lighting that is arranged above the mirror in a bathroom is sometimes described as 'Vanity Bathroom Lighting'.\"]```"
 answer2 = "```[\"A gas powered push lawn mower tends to have power and durability.\", \"Electric powered push lawnmowers are more enironmentally friendly and can save money on gas. Sometimes they have less power than gas mowers, but recently, they have been getting better.\"]```"
 
-def search(transcript):
+def search(transcript, department):
     background = 'You are a solution designer. Your job is to take a conversation and create relevant product descriptions.'
     prompt = ['You will be given a transcript of a conversation between a sales associate and a customer.',
               'Come up with descriptions of products discussed in the conversation.',
+              'If there are no products described in the conversation make one up related to \'{}\'.'.format(department),
               'There may be more than one product being mentioned.',
               'ONLY provide the descriptions in a list format surrounded by tickmarks.',
               'DO NOT include introductions, context, rationales or any other text',

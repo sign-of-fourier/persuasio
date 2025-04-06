@@ -53,10 +53,13 @@ customer_name = 'Guest'
 url = ''
 if 'CHROMADB' in os.environ.keys():
     import chromadb
-    client = chromadb.PersistentClient(path="persuasio/chroma_small")
-    client2 = chromadb.PersistentClient(path="persuasio/chroma_small2")
-    description_db = client.get_collection(name="amazon_beauty_descriptions")
-    description_db2 = client2.get_collection(name="amazon_beauty_descriptions2")
+    
+    beauty_description_db = {'Beauty': [chromadb.PersistentClient(path="persuasio/chroma_small").get_collection(name="amazon_beauty_descriptions"),
+                                        chromadb.PersistentClient(path="persuasio/chroma_small2").get_collection(name="amazon_beauty_descriptions2")],
+                             'Appliances': [chromadb.PersistentClient(path="persuasio/chroma_small").get_collection(name="amazon_appliances_descriptions"),
+                                        chromadb.PersistentClient(path="persuasio/chroma_appliances2").get_collection(name="amazon_appliances_descriptions2"),
+                                        chromadb.PersistentClient(path="persuasio/chroma_appliances3").get_collection(name="amazon_appliances_descriptions3")]
+                            } 
 
 
 reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
@@ -86,26 +89,24 @@ She is knolwedgable about a variety of products and their reviews.<br>
 def welcome():
     return welcome_page.format(name)
 
-@app.route('/chromadb', methods = ['POST'])
-def embeddingdb():
     
-    data = json.loads(request.data)
-    results = description_db.query(
-        query_texts=data['search_terms'],
-        n_results=3
+def embeddingdb(department, search_terms):
+    
+    results = []
+    for db in descriptions_db[data['depertment']]:
+        results.append(db.query(
+            query_texts=data['search_terms'],
+            n_results=3
         )
-    results2 = description_db2.query(
-        query_texts=data['search_terms'],
-        n_results=3
-    )
-    search_df = pd.concat([utils.get_search_df(results, data['iteration']), utils.get_search_df(results2, data['iteration'])], axis=0)
+                      )
+                       
+    return pd.concat([utils.get_search_df(r, data['iteration']) for r in results], axis=0)
     
-    return json.dumps(search_df.to_dict())
         
 def chat_bot(user_statement, department, transcript_history, product_history, iteration, max_tokens, product_history_included):
 
     conversation = transcript_history + "\n"+customer_name+": " + user_statement 
-    search_terms = agents.search("\n".join(conversation.split("\n")[:8]))
+    search_terms = agents.search("\n".join(conversation.split("\n")[:8]), department)
     try:
         search_terms = eval(search_terms)
     except Exception as e:
@@ -113,18 +114,9 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
         
     
     if 'CHROMADB' in os.environ.keys():
-        
-        results = description_db.query(
-            query_texts=search_terms,
-            n_results=3
-        )
-        results2 = description_db2.query(
-            query_texts=search_terms,
-            n_results=3
-        )
-        search_df = pd.concat([utils.get_search_df(results, iteration), utils.get_search_df(results2, iteration)], axis=0)
+        search_df = embeddingdb(department, search_terms)
     else:
-        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}&max_tokens={}&include_product_history={}'.format(iteration, max_tokens, product_history_included), data=json.dumps({'search_terms': search_terms, 'iteration': iteration}))
+        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}&max_tokens={}&include_product_history={}'.format(iteration, max_tokens, product_history_included), data=json.dumps({'search_terms': search_terms, 'iteration': iteration, 'department': department}))
         try:
             search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
         except Exception as e:
@@ -178,6 +170,12 @@ def persuasio():
     
 
 
+
+@app.route('/chromadb', methods = ['POST'])
+def call_chroma():
+    data = json.loads(request.data)
+    return json.dumps(embeddingdb(data['department'], data['search_terms']).to_dict())
+    
 
 
 @app.route("/favicon.ico", methods = ['GET'])
