@@ -61,8 +61,8 @@ if 'CHROMADB' in os.environ.keys():
                                         chromadb.PersistentClient(path="persuasio/chroma_appliances3").get_collection(name="amazon_appliances_descriptions3")]
                             } 
 
-
-reviews_df = pd.read_csv('persuasio/reviews.csv.gz', compression='gzip')
+reviews_df = {'Beauty': pd.read_csv('persuasio/reviews.csv.gz', compression='gzip'),
+              'Appliances': pd.read_csv('persuasio/appliances_reviews.csv.gz', compression='gzip')}
 
 welcome_page = """
 <html>
@@ -76,8 +76,8 @@ She is knolwedgable about a variety of products and their reviews.<br>
     <input type=hidden name=product_history value='None'></input>
     <label for=Department>Department:</label>
     <select name="department" id="department">
-      <option value="Electronics">Electronics</option>
-      <option value="Beauty">Beauty</option>
+        <option value="Beauty">Beauty</option>
+        <option value="Appliances">Appliances</option>
     </select><br><br>
     <input type=hidden name=transcript_history value='{}: Hi. How can I help you?'></input>
     <input type=text name='user_statement' value="What's the best perfume?"></input>
@@ -139,7 +139,7 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
     ct = 1
     for idx, title, avg_rating, rating_n, price, text in zip(search_df['id'], search_df['title'], search_df['average_rating'],
                                                              search_df['rating_number'], search_df['price'], search_df['description']):
-        review_summary = agents.summarize(utils.subsample(reviews_df[reviews_df['parent_asin'] == idx], 20))
+        review_summary = agents.summarize(utils.subsample(reviews_df[department][reviews_df[department]['parent_asin'] == idx], 20))
         product_info += "{}. {}\n- {}\n\nSummary of a Sample of Reviews\n{}\n\n".format(ct, title, text, review_summary)   
         product_info += "Overall Average: {}\nNumber of Ratings: {}\nPrice: ${}\n\n".format(avg_rating, rating_n, price)
         ct += 1
