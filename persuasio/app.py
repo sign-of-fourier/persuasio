@@ -93,9 +93,9 @@ def welcome():
 def embeddingdb(department, search_terms):
     
     results = []
-    for db in descriptions_db[data['depertment']]:
+    for db in descriptions_db[depertment]:
         results.append(db.query(
-            query_texts=data['search_terms'],
+            query_texts=search_terms,
             n_results=3
         )
                       )
