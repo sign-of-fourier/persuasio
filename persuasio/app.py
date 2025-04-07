@@ -46,6 +46,8 @@ page = """
 </table>
 <br>
 <br><a href="https://persuasio.onrender.com/">Start a new conversation.</a>
+<font color='white'>{}</font>
+
 """
 name = 'Persephone'
 customer_name = 'Guest'
@@ -99,20 +101,19 @@ def embeddingdb(department, search_terms, iteration):
             n_results=3
         )
                       )
-                       
+
     return pd.concat([utils.get_search_df(r, iteration) for r in results], axis=0)
-    
-        
+
+
 def chat_bot(user_statement, department, transcript_history, product_history, iteration, max_tokens, product_history_included):
 
     conversation = transcript_history + "\n"+customer_name+": " + user_statement 
-    search_terms = agents.search("\n".join(conversation.split("\n")[:8]), department)
+    search_terms = agents.search("\n".join(conversation.split("\n")[:10]), department)
     try:
         search_terms = eval(search_terms)
     except Exception as e:
         print(e)
-        
-    
+
     if 'CHROMADB' in os.environ.keys():
         search_df = embeddingdb(department, search_terms, iteration)
     else:
@@ -125,9 +126,8 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
     if product_history_included == 'True':
         search_df = pd.concat([search_df, pd.DataFrame(json.loads(product_history))], axis=0) 
 
-    mx = np.max(pd.DataFrame(search_df)['iteration'])    
-    search_df = search_df[search_df['iteration'] >= (int(mx)-2)].sort_values('distances')
-#    print(search_df[['title', 'iteration', 'distances']])
+    mx = np.max(pd.DataFrame(search_df)['iteration'])
+    search_df = search_df[search_df['iteration'] >= (int(mx)-2)].sort_values('distances').head(10)
     search_df = search_df.drop_duplicates(subset='id', inplace=False)
     
     #print("\n".join([i for i in search_df['image']]))
@@ -150,24 +150,21 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
     search_df_text = re.sub("'", "&apos;", json.dumps(search_df.to_dict()))
     return page.format(iteration+1, search_df_text, department, department,
                        re.sub("\n", "<br>", re.sub(customer_name+':', '<b>'+customer_name+'</b>:', re.sub(name+':', '<b>'+name+'</b>:', transcript))), 
-                       transcript,  "<br>".join(images))
+                       transcript,  "<br>".join(images), search_terms)
 
 @app.route("/persuasio_json", methods = ['POST'])
 def persuasio_json():
-    
 
     data = json.loads(request.data)
     return chat_bot(data['user_statement'], data['department'], data['transcript_history'],
                     data['product_history'], data['iteration'],  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
-    
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
     return chat_bot(request.form.get('user_statement'), request.form.get('department'), request.form.get('transcript_history'),
                     request.form.get('product_history'), int(request.args.get('iteration')),  request.args.get('max_tokens'),
                     request.args.get('product_history_included'))
-    
 
 
 
@@ -175,7 +172,6 @@ def persuasio():
 def call_chroma():
     data = json.loads(request.data)
     return json.dumps(embeddingdb(data['department'], data['search_terms'], data['iteration']).to_dict())
-    
 
 
 @app.route("/favicon.ico", methods = ['GET'])
