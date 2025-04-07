@@ -117,7 +117,7 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
     if 'CHROMADB' in os.environ.keys():
         search_df = embeddingdb(department, search_terms, iteration)
     else:
-        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}&max_tokens={}&include_product_history={}'.format(iteration, max_tokens, product_history_included), data=json.dumps({'search_terms': search_terms, 'iteration': iteration, 'department': department}))
+        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}'.format(iteration), data=json.dumps({'search_terms': search_terms, 'department': department}))
         try:
             search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
         except Exception as e:
@@ -171,7 +171,7 @@ def persuasio():
 @app.route('/chromadb', methods = ['POST'])
 def call_chroma():
     data = json.loads(request.data)
-    return json.dumps(embeddingdb(data['department'], data['search_terms'], data['iteration']).to_dict())
+    return json.dumps(embeddingdb(data['department'], data['search_terms'], request.args.get('iteration')).to_dict())
 
 
 @app.route("/favicon.ico", methods = ['GET'])
