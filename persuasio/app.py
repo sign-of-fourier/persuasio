@@ -22,8 +22,6 @@ import persuasio.agents as agents
 app = Flask(__name__)
 
 page = """
-<html>
-<title>Persuasio</title>
 
 <table border=1>
     <tr>
@@ -45,7 +43,7 @@ page = """
     </tr>
 </table>
 <br>
-<br><a href="https://persuasio.onrender.com/">Start a new conversation.</a>
+<br><a href="{}">Start a new conversation.</a>
 <font color='white'>{}</font>
 
 """
@@ -66,10 +64,63 @@ if 'CHROMADB' in os.environ.keys():
 reviews_df = {'Beauty': pd.read_csv('persuasio/reviews.csv.gz', compression='gzip'),
               'Appliances': pd.read_csv('persuasio/appliances_reviews.csv.gz', compression='gzip')}
 
-welcome_page = """
+header_page = """
 <html>
+<head>
+<meta name="viewparot" content="width=device-width, initial-scale=1">
+<style>
+/* Add a black background color to the top navigation */
+.topnav {
+  background-color: #333;
+  overflow: hidden;
+}
+
+/* Style the links inside the navigation bar */
+.topnav a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+/* Add a color to the active/current link */
+.topnav a.active {
+  background-color: #04AA6D;
+  color: white;
+}
+
+
+img {
+  width: 100px,
+  height: auto
+}
+
+</style>
+</head>
 <title>Persuasio</title>
 <center><h2>Persephone </h2></center>
+<body>
+
+<div class="topnav">
+  <a class="active" href="#home">Home</a>
+  <a href="#news">News</a>
+  <a href="#contact">Contact</a>
+  <a href="/about">About</a>
+</div>
+
+
+
+"""
+
+welcome_page = """
 <hr>
 Meet Persephone. The worlds first persuasive shopping assistant!
 <br>
@@ -87,9 +138,16 @@ She is knolwedgable about a variety of products and their reviews.<br>
 </form>
 </html>
 """
+
+
+@app.route("/about")
+def about():
+    return "fantastic!"
+
+
 @app.route("/")
 def welcome():
-    return welcome_page.format(name)
+    return header_page + welcome_page.format(name)
 
     
 def embeddingdb(department, search_terms, iteration):
@@ -105,7 +163,8 @@ def embeddingdb(department, search_terms, iteration):
     return pd.concat([utils.get_search_df(r, iteration) for r in results], axis=0)
 
 
-def chat_bot(user_statement, department, transcript_history, product_history, iteration, max_tokens, product_history_included):
+def chat_bot(user_statement, department, transcript_history, product_history, iteration, max_tokens, product_history_included, url):
+
 
     conversation = transcript_history + "\n"+customer_name+": " + user_statement 
     search_terms = agents.search("\n".join(conversation.split("\n")[:10]), department)
@@ -115,9 +174,10 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
         print(e)
 
     if 'CHROMADB' in os.environ.keys():
-        search_df = embeddingdb(department, search_terms, iteration)
+        search_df = embeddingdb(department, search_terms, int(iteration))
     else:
-        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}'.format(iteration), data=json.dumps({'search_terms': search_terms, 'department': department}))
+        response = requests.post('https://persuasio.onrender.com/chromadb?iteration={}'.format(iteration), 
+                                 data=json.dumps({'search_terms': search_terms, 'department': department}))
         try:
             search_df = pd.DataFrame(json.loads(response.content.decode('utf-8')))
         except Exception as e:
@@ -132,9 +192,15 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
     
     #print("\n".join([i for i in search_df['image']]))
     
-    images = ["<table><tr><td><img src='{}'></img></td></tr><tr><td><b>{}.</b> {}</td></tr></table>\n".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
-            #print(results['metadatas'][i][j]['title'], ', $' + str(results['metadatas'][i][j]['price']))
+    images = ["<td><center><img src='{}' size=.5></img></center><br><b>{}.</b> {}</td>\n".format(i[1].split("\n")[0], i[0] + 1, t) for i, t in zip(enumerate(search_df['image']), search_df['title'])]
+    image_page = "<table border=1><tr>"
+    for n, image in enumerate(images):
+        if (n % 2) == 1:
+            image_page += image + "</tr><tr>" 
+        else:
+            image_page += image
 
+    image_page += '</tr></table>'
     product_info = ''
     ct = 1
     for idx, title, avg_rating, rating_n, price, text in zip(search_df['id'], search_df['title'], search_df['average_rating'],
@@ -148,23 +214,18 @@ def chat_bot(user_statement, department, transcript_history, product_history, it
 
     transcript = conversation + "\n" + name + ": " + reply
     search_df_text = re.sub("'", "&apos;", json.dumps(search_df.to_dict()))
-    return page.format(iteration+1, search_df_text, department, department,
-                       re.sub("\n", "<br>", re.sub(customer_name+':', '<b>'+customer_name+'</b>:', re.sub(name+':', '<b>'+name+'</b>:', transcript))), 
-                       transcript,  "<br>".join(images), search_terms)
+    return header_page + page.format(iteration+1, search_df_text, department, department,
+                                     re.sub("\n", "<br>", re.sub(customer_name+':', '<b>'+customer_name+'</b>:', re.sub(name+':', '<b>'+name+'</b>:', transcript))), 
+                                     transcript,  image_page, url, search_terms)
 
-@app.route("/persuasio_json", methods = ['POST'])
-def persuasio_json():
 
-    data = json.loads(request.data)
-    return chat_bot(data['user_statement'], data['department'], data['transcript_history'],
-                    data['product_history'], data['iteration'],  request.args.get('max_tokens'),
-                    request.args.get('product_history_included'))
+
 
 @app.route("/persuasio", methods = ['POST'])
 def persuasio():
     return chat_bot(request.form.get('user_statement'), request.form.get('department'), request.form.get('transcript_history'),
                     request.form.get('product_history'), int(request.args.get('iteration')),  request.args.get('max_tokens'),
-                    request.args.get('product_history_included'))
+                    request.args.get('product_history_included'), request.url_root)
 
 
 

@@ -85,7 +85,7 @@ def summarize(reviews):
 
 def salesman(department: 'string', transcript_of_conversation: 'transcript', search_results: 'rag') -> 'string':
 
-    background = ['You are a sales person at a {} store and your name is \Persephone\'.'.format(department),
+    background = ['You are a sales person at a {} store and your name is \'Persephone\'.'.format(department),
                   'You are speaking with a customer.']
     prompt = ['Your goal is to help the customer shop.'
               'You are in the middle of a conversation',
